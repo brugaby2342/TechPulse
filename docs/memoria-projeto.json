@@ -1,0 +1,47 @@
+
+{
+	"project": "TechPulse",
+	"entries": [
+		{
+			"date": "2026-08-11",
+			"actions": [
+				"Projeto TechPulse criado",
+				"Rascunho do Contrato API elaborado",
+				"MCP de memória configurado",
+				"Diagrama de arquitetura criado (Whimsical)",
+				"Diagrama de Fluxo de Dados criado (Whimsical)"
+			],
+			"notes": "Registro criado conforme solicitado.",
+			"contractSummary": {
+				"title": "TechPulse - Central Inteligente de Insights de Inovação",
+				"version": "1.0.0",
+				"server": "https://api.techpulse.exemplo.com/v1",
+				"security": "bearerAuth (JWT) — exigido para endpoints de escrita e configuração",
+				"contractFilePath": "contrato.yaml",
+				"whimsicalLink": "https://whimsical.com/gabi466/techpulse-DVVoPp8z291ePoxFoBjazT",
+				"schemas": {
+					"Noticia": "Registro de notícia (id, idGNews, titulo, url, dataPublicacao, idioma, palavrasChave, jaProcessada)",
+					"PrecoAtivo": "Cotações de ativos (ativo, precoUsd, precoBrl, variacao24h, volume24h, marketCap, timestamp)",
+					"Insight": "Card de insight gerado (titulo, textoCard, tipo, prioridade, status, referencias)",
+					"Configuracao": "Parâmetros de operação (palavrasChaveAtivas, ativosMonitorados, thresholdVariacao, frequenciaAtualizacao)",
+					"Erro": "Modelo de erro padrão (codigo, mensagem)"
+				},
+				"keyEndpoints": {
+					"/noticias": "GET listagem (filtros por palavraChave, jaProcessada)",
+					"/noticias/{id}": "GET detalhe",
+					"/precos-ativos": "GET listagem (filtro por ativo, desde)",
+					"/precos-ativos/ultimos": "GET últimas cotações por ativo",
+					"/insights": "GET listagem; POST criar insight (auth)",
+					"/insights/{id}": "PATCH atualizar status (auth)",
+					"/configuracoes": "GET consultar; PATCH atualizar (auth)"
+				},
+				"externalApis": [
+					"GNews — fonte de artigos (search, top-headlines)",
+					"CoinGecko — cotações e variações (simple/price, trending)"
+				],
+				"notes": "Resumo gerado a partir de /contrato.yaml; recomenda-se vincular a especificação OpenAPI completa quando disponível."
+			}
+		}
+	]
+}
+
