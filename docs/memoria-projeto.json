@@ -41,6 +41,28 @@
 				],
 				"notes": "Resumo gerado a partir de /contrato.yaml; recomenda-se vincular a especificação OpenAPI completa quando disponível."
 			}
+		},
+		{
+			"date": "2026-08-14",
+			"actions": [
+				"Documentação de gestão de chaves e variáveis de ambiente concluída",
+				"Política de segurança para frontend estático e backend em Make.com registrada",
+				"Decisão de usar .env.example e .env para segredos locais documentada",
+				"Autenticação administrativa com Bearer Token isolada do navegador registrada"
+			],
+			"notes": "O TechPulse não versiona credenciais. O arquivo .env.example documenta GNEWS_API_KEY, AIRTABLE_PAT, AIRTABLE_BASE_ID e ADMIN_BEARER_TOKEN sem valores reais; o .env armazena os valores locais e é ignorado pelo Git. Em um frontend estático com GitHub Pages, o Airtable PAT tem escopo somente leitura, e ações administrativas são autorizadas sem expor o token no navegador: a validação do ADMIN_BEARER_TOKEN ocorre no Make.com e o token nunca é escrito em código-fonte versionado.",
+			"securityNotes": {
+				"envFiles": {
+					"envExample": "Documento o nome e o propósito de cada variável, sem valores reais.",
+					"envLocal": "Armazena os valores reais, fica em .gitignore e nunca é enviado ao GitHub."
+				},
+				"keyUsage": {
+					"GNEWS_API_KEY": "Usada em conexão HTTP configurada no Make.com; apenas em scripts locais de teste antes da configuração final no Make.com.",
+					"AIRTABLE_PAT": "Consumido diretamente pelo frontend estático para consultas somente leitura de dados já públicos.",
+					"ADMIN_BEARER_TOKEN": "Comparado por um módulo Filter no Make.com para autorizar ou bloquear ações administrativas no endpoint /configuracoes."
+				},
+				"architectureDecision": "Como o frontend é 100% estático, nenhum valor sensível deve ser embutido em JavaScript público. A segurança relevante é reforçada com escopo de leitura e validação em servidor/automação, nunca no navegador."
+			}
 		}
 	]
 }
