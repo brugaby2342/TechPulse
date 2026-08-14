@@ -1,0 +1,854 @@
+openapi: 3.0.3
+info:
+  title: TechPulse - Central Inteligente de Insights de Inovação
+  description: >
+    Contrato da API interna do TechPulse. Esta especificação define os
+    recursos expostos pela aplicação para consulta e gerenciamento das
+    informações consolidadas a partir das APIs externas (GNews e CoinGecko),
+    processadas e persistidas no Airtable. O contrato adota a metodologia
+    API First: a interface é definida e validada antes da implementação.
+  version: "2.2.0"
+  contact:
+    name: Autor do Projeto
+    email: seu-email@exemplo.com
+
+servers:
+  - url: http://localhost:8080/v1
+    description: Ambiente de desenvolvimento (mock server)
+  - url: https://api.techpulse.exemplo.com/v1
+    description: Ambiente de produção
+
+tags:
+  - name: Noticias
+    description: Notícias capturadas da GNews
+  - name: PrecosAtivos
+    description: Cotações de criptoativos capturadas da CoinGecko
+  - name: Insights
+    description: Cards de insight gerados pela automação
+  - name: Configuracoes
+    description: Parâmetros que controlam a automação (palavras-chave, threshold, ativos monitorados)
+
+# ---------------------------------------------------------------------------
+# PERFIS DE ACESSO
+# ---------------------------------------------------------------------------
+# O contrato define dois perfis. Apenas o Administrador efetivamente carrega
+# um JWT com scopes: o perfil "Usuário comum" corresponde a requisições sem
+# autenticação, pois os endpoints de leitura de Noticias, PrecosAtivos e
+# Insights são públicos por decisão de projeto (dados não pessoais, LGPD ok).
+#
+# | Perfil            | Scopes concedidos no JWT                              |
+# |--------------------|--------------------------------------------------------|
+# | Administrador      | insights.write, insights.delete,                       |
+# |                    | configuracoes.read, configuracoes.write                |
+# | Usuário comum      | nenhum — acessa apenas os GETs públicos, sem token      |
+#
+# Regra de aplicação: a API não verifica "quem é admin" — ela verifica se o
+# JWT apresentado contém o scope declarado em x-required-scope no endpoint.
+# Como o scope configuracoes.read só é emitido para tokens do perfil
+# Administrador, uma chamada de um usuário comum a GET /configuracoes:
+#   - sem token  -> 401 Não Autenticado
+#   - com token válido, mas sem o scope -> 403 Acesso Negado
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Token JWT enviado em Authorization: Bearer {token}. Utilizado apenas
+        pelo perfil Administrador, para os endpoints de escrita em Insights
+        (insights.write, insights.delete) e para ambos os métodos de
+        Configuracoes (configuracoes.read, configuracoes.write). Os demais
+        endpoints (GET de Noticias, PrecosAtivos e Insights) são públicos e
+        dispensam este esquema de segurança.
+
+  parameters:
+    NoticiaId:
+      name: id
+      in: path
+      required: true
+      description: Identificador único da notícia (recordId do Airtable)
+      schema:
+        type: string
+      example: "recNoticia001"
+    InsightId:
+      name: id
+      in: path
+      required: true
+      description: Identificador único do insight (recordId do Airtable)
+      schema:
+        type: string
+      example: "recInsight001"
+
+  schemas:
+    # --------------------------- Notícias ---------------------------------
+    NoticiaEntrada:
+      type: object
+      additionalProperties: false
+      description: >
+        Não exposta em nenhum endpoint de escrita — a criação de notícias é
+        feita exclusivamente pela automação (Make.com), diretamente no
+        Airtable. Mantida no contrato apenas como referência de schema.
+      properties:
+        titulo:
+          type: string
+        descricao:
+          type: string
+        url:
+          type: string
+          format: uri
+          description: >
+            Identificador natural do artigo, usado como chave de
+            deduplicação — a GNews não fornece um ID nativo por artigo,
+            mas a URL é estável e única por publicação.
+        fonte:
+          type: string
+        imagem:
+          type: string
+          format: uri
+        dataPublicacao:
+          type: string
+          format: date-time
+        idioma:
+          type: string
+          enum: [pt, en, es]
+        palavrasChave:
+          type: array
+          items:
+            type: string
+      required: [titulo, url, dataPublicacao]
+
+    Noticia:
+      type: object
+      additionalProperties: false
+      required: [id, titulo, url, dataPublicacao, jaProcessada]
+      properties:
+        id:
+          type: string
+          readOnly: true
+          example: "recNoticia001"
+        titulo:
+          type: string
+        descricao:
+          type: string
+        url:
+          type: string
+          format: uri
+          description: >
+            Identificador natural do artigo, usado como chave de
+            deduplicação — a GNews não fornece um ID nativo por artigo,
+            mas a URL é estável e única por publicação.
+        fonte:
+          type: string
+        imagem:
+          type: string
+          format: uri
+        dataPublicacao:
+          type: string
+          format: date-time
+        idioma:
+          type: string
+          enum: [pt, en, es]
+        palavrasChave:
+          type: array
+          items:
+            type: string
+        jaProcessada:
+          type: boolean
+        dataCaptura:
+          type: string
+          format: date-time
+          readOnly: true
+
+    RespostaNoticia:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Noticia'
+
+    RespostaListaNoticias:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Noticia'
+
+    # ------------------------ Preços de Ativos ------------------------------
+    PrecoAtivo:
+      type: object
+      additionalProperties: false
+      required: [id, ativo, precoUsd, variacao24h, timestamp]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        ativo:
+          type: string
+          enum: [Bitcoin, Ethereum, Dogecoin, Solana, Outro]
+        precoUsd:
+          type: number
+          format: float
+        precoBrl:
+          type: number
+          format: float
+        variacao24h:
+          type: number
+          format: float
+          description: Percentual de variação nas últimas 24h
+        volume24h:
+          type: number
+          description: >
+            Volume negociado em 24h (usd_24h_vol). Requer include_24hr_vol=true
+            na chamada à CoinGecko; opcional pois a fonte pode omitir o dado
+            para ativos de baixa liquidez.
+        marketCap:
+          type: number
+          description: >
+            Capitalização de mercado (usd_market_cap). Requer
+            include_market_cap=true na chamada à CoinGecko; opcional pelo
+            mesmo motivo de volume24h.
+        timestamp:
+          type: string
+          format: date-time
+          description: >
+            Horário em que a automação executou a captura. A CoinGecko só
+            retorna horário próprio (last_updated_at) se solicitado via
+            include_last_updated_at=true; por padrão, este campo usa o
+            horário de execução da automação.
+        fonte:
+          type: string
+          example: CoinGecko
+
+    RespostaPrecoAtivo:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/PrecoAtivo'
+
+    RespostaListaPrecosAtivos:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/PrecoAtivo'
+
+    # ----------------------------- Insights ---------------------------------
+    InsightEntrada:
+      type: object
+      additionalProperties: false
+      description: Corpo utilizado por POST /insights (uso interno da automação).
+      properties:
+        titulo:
+          type: string
+        textoCard:
+          type: string
+          description: Texto pronto para uso em stories/Instagram
+        tipo:
+          type: string
+          enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
+        prioridade:
+          type: string
+          enum: [Alta, Média, Baixa]
+        status:
+          type: string
+          enum: [Novo, Usado, Arquivado]
+          default: Novo
+        variacaoPercentual:
+          type: number
+          format: float
+        ativoRelacionadoId:
+          type: string
+        noticiaRelacionadaId:
+          type: string
+        urlNoticia:
+          type: string
+          format: uri
+      required: [titulo, textoCard, tipo, status]
+
+    InsightStatusEntrada:
+      type: object
+      additionalProperties: false
+      description: Corpo utilizado por PATCH /insights/{id} para atualizar apenas o status.
+      properties:
+        status:
+          type: string
+          enum: [Novo, Usado, Arquivado]
+      required: [status]
+
+    Insight:
+      type: object
+      additionalProperties: false
+      required: [id, titulo, textoCard, tipo, status, dataGeracao]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        titulo:
+          type: string
+        textoCard:
+          type: string
+        tipo:
+          type: string
+          enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
+        prioridade:
+          type: string
+          enum: [Alta, Média, Baixa]
+        status:
+          type: string
+          enum: [Novo, Usado, Arquivado]
+        variacaoPercentual:
+          type: number
+          format: float
+        ativoRelacionadoId:
+          type: string
+        noticiaRelacionadaId:
+          type: string
+        urlNoticia:
+          type: string
+          format: uri
+        dataGeracao:
+          type: string
+          format: date-time
+          readOnly: true
+
+    RespostaInsight:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Insight'
+
+    RespostaListaInsights:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Insight'
+
+    # --------------------------- Configurações -------------------------------
+    ConfiguracaoEntrada:
+      type: object
+      additionalProperties: false
+      description: Corpo utilizado por PATCH /configuracoes.
+      properties:
+        nome:
+          type: string
+        palavrasChaveAtivas:
+          type: array
+          items:
+            type: string
+        ativosMonitorados:
+          type: array
+          items:
+            type: string
+        thresholdVariacao:
+          type: number
+          description: Percentual mínimo de variação para disparar automação
+        frequenciaAtualizacao:
+          type: string
+          enum: ["1h", "2h", "3h", "6h"]
+        idiomasPreferidos:
+          type: array
+          items:
+            type: string
+        ativo:
+          type: boolean
+
+    Configuracao:
+      type: object
+      additionalProperties: false
+      required: [id, nome, palavrasChaveAtivas, ativosMonitorados, thresholdVariacao, ativo]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        nome:
+          type: string
+        palavrasChaveAtivas:
+          type: array
+          items:
+            type: string
+        ativosMonitorados:
+          type: array
+          items:
+            type: string
+        thresholdVariacao:
+          type: number
+          description: Percentual mínimo de variação para disparar automação
+        frequenciaAtualizacao:
+          type: string
+          enum: ["1h", "2h", "3h", "6h"]
+        idiomasPreferidos:
+          type: array
+          items:
+            type: string
+        ativo:
+          type: boolean
+        ultimaAtualizacao:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+
+    RespostaConfiguracao:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          $ref: '#/components/schemas/Configuracao'
+
+    # ----------------------------- Genéricos ---------------------------------
+    RespostaSucessoSemDados:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          type: object
+          nullable: true
+          example: null
+
+    RespostaErro:
+      type: object
+      additionalProperties: false
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        message:
+          type: string
+
+  responses:
+    NaoAutenticado:
+      description: Token JWT ausente, inválido ou expirado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+    AcessoNegado:
+      description: Usuário autenticado sem o scope necessário
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+    ErroInterno:
+      description: Falha inesperada ao processar a requisição
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+    NoticiaNaoEncontrada:
+      description: Notícia não encontrada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+    InsightNaoEncontrado:
+      description: Insight não encontrado
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+    ConfiguracaoNaoEncontrada:
+      description: Configuração não encontrada
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+
+# ---------------------------------------------------------------------------
+# RECURSOS / ENDPOINTS DA API INTERNA
+# ---------------------------------------------------------------------------
+paths:
+
+  /noticias:
+    get:
+      tags: [Noticias]
+      summary: Listar notícias capturadas
+      description: Lista as notícias já capturadas da GNews e persistidas no Airtable. Endpoint público — não requer autenticação, pois não expõe dado
+        pessoal (notícias são conteúdo público capturado da GNews).
+      operationId: listarNoticias
+      parameters:
+        - name: palavraChave
+          in: query
+          schema:
+            type: string
+          description: Filtra por palavra-chave (ex. "Elon Musk")
+        - name: jaProcessada
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Notícias consultadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaListaNoticias'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+  /noticias/{id}:
+    parameters:
+      - $ref: '#/components/parameters/NoticiaId'
+    get:
+      tags: [Noticias]
+      summary: Consultar notícia por ID
+      operationId: consultarNoticiaPorId
+      responses:
+        "200":
+          description: Notícia consultada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaNoticia'
+        "404":
+          $ref: '#/components/responses/NoticiaNaoEncontrada'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+  /precos-ativos:
+    get:
+      tags: [PrecosAtivos]
+      summary: Listar cotações registradas
+      operationId: listarPrecosAtivos
+      parameters:
+        - name: ativo
+          in: query
+          schema:
+            type: string
+          description: Filtra por ativo (ex. Bitcoin)
+        - name: desde
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Cotações consultadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaListaPrecosAtivos'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+  /precos-ativos/ultimos:
+    get:
+      tags: [PrecosAtivos]
+      summary: Obter a cotação mais recente de cada ativo monitorado
+      operationId: obterUltimasCotacoes
+      responses:
+        "200":
+          description: Últimas cotações consultadas com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaListaPrecosAtivos'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+  /insights:
+    get:
+      tags: [Insights]
+      summary: Listar insights gerados
+      operationId: listarInsights
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [Novo, Usado, Arquivado]
+        - name: prioridade
+          in: query
+          schema:
+            type: string
+            enum: [Alta, Média, Baixa]
+      responses:
+        "200":
+          description: Insights consultados com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaListaInsights'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+    post:
+      tags: [Insights]
+      summary: Criar um novo insight (uso interno da automação)
+      description: Restrito ao perfil Administrador.
+      operationId: criarInsight
+      security:
+        - bearerAuth: []
+      x-required-scope: insights.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsightEntrada'
+      responses:
+        "201":
+          description: Insight criado com sucesso
+          headers:
+            Location:
+              description: URI do insight criado
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaInsight'
+        "400":
+          description: Dados enviados em formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
+        "401":
+          $ref: '#/components/responses/NaoAutenticado'
+        "403":
+          $ref: '#/components/responses/AcessoNegado'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+  /insights/{id}:
+    parameters:
+      - $ref: '#/components/parameters/InsightId'
+    get:
+      tags: [Insights]
+      summary: Consultar insight por ID
+      description: >
+        Consulta um insight específico, incluindo os identificadores da
+        notícia e do ativo relacionados (quando aplicável).
+      operationId: consultarInsightPorId
+      responses:
+        "200":
+          description: Insight consultado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaInsight'
+        "404":
+          $ref: '#/components/responses/InsightNaoEncontrado'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+    patch:
+      tags: [Insights]
+      summary: Atualizar status de um insight (ex. marcar como "Usado")
+      description: Restrito ao perfil Administrador.
+      operationId: atualizarStatusInsight
+      security:
+        - bearerAuth: []
+      x-required-scope: insights.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InsightStatusEntrada'
+      responses:
+        "200":
+          description: Insight atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaInsight'
+        "400":
+          description: Dados enviados em formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
+        "401":
+          $ref: '#/components/responses/NaoAutenticado'
+        "403":
+          $ref: '#/components/responses/AcessoNegado'
+        "404":
+          $ref: '#/components/responses/InsightNaoEncontrado'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+    delete:
+      tags: [Insights]
+      summary: Remover (arquivar) insight
+      description: >
+        Executa uma remoção lógica (soft delete): altera o campo `status`
+        do insight para "Arquivado" no Airtable, preservando o histórico
+        do registro. A remoção física é reservada para a rotina de
+        retenção de dados (insights com mais de 30 dias), executada pela
+        automação, e não é exposta como operação direta da API. Por isso
+        recebe um scope próprio (`insights.delete`), distinto de
+        `insights.write` usado para simples atualização de status. Restrito
+        ao perfil Administrador.
+      operationId: removerInsight
+      security:
+        - bearerAuth: []
+      x-required-scope: insights.delete
+      responses:
+        "200":
+          description: Insight arquivado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaInsight'
+        "401":
+          $ref: '#/components/responses/NaoAutenticado'
+        "403":
+          $ref: '#/components/responses/AcessoNegado'
+        "404":
+          $ref: '#/components/responses/InsightNaoEncontrado'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+  /configuracoes:
+    get:
+      tags: [Configuracoes]
+      summary: Consultar configuração ativa da automação
+      description: >
+        Restrito ao perfil Administrador — diferentemente dos demais
+        recursos de leitura (notícias, preços e insights), a configuração
+        da automação não é considerada dado público, pois expõe a lógica
+        de negócio do sistema (palavras-chave, threshold, ativos monitorados).
+      operationId: consultarConfiguracao
+      security:
+        - bearerAuth: []
+      x-required-scope: configuracoes.read
+      responses:
+        "200":
+          description: Configuração consultada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaConfiguracao'
+        "401":
+          $ref: '#/components/responses/NaoAutenticado'
+        "403":
+          $ref: '#/components/responses/AcessoNegado'
+        "404":
+          $ref: '#/components/responses/ConfiguracaoNaoEncontrada'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+    patch:
+      tags: [Configuracoes]
+      summary: Atualizar palavras-chave, ativos monitorados ou threshold
+      description: Restrito ao perfil Administrador.
+      operationId: atualizarConfiguracao
+      security:
+        - bearerAuth: []
+      x-required-scope: configuracoes.write
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfiguracaoEntrada'
+      responses:
+        "200":
+          description: Configuração atualizada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaConfiguracao'
+        "400":
+          description: Dados enviados em formato inválido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RespostaErro'
+        "401":
+          $ref: '#/components/responses/NaoAutenticado'
+        "403":
+          $ref: '#/components/responses/AcessoNegado'
+        "404":
+          $ref: '#/components/responses/ConfiguracaoNaoEncontrada'
+        "500":
+          $ref: '#/components/responses/ErroInterno'
+
+# ---------------------------------------------------------------------------
+# ANEXO: CONTRATO DAS APIs EXTERNAS CONSUMIDAS (referência, não implementadas
+# por você - documentadas aqui para rastreabilidade e para a Parte Teórica)
+# ---------------------------------------------------------------------------
+# GNews API
+#   GET https://gnews.io/api/v4/search
+#     query params: q, lang, max, apikey
+#     auth: API Key (query param)
+#     retorna: { totalArticles, articles: [{ title, description, content,
+#                url, image, publishedAt, source: { name, url } }] }
+#     obs: não retorna ID único por artigo. A deduplicação (Noticia.url como
+#          chave) usa o próprio campo url, que é estável e único por artigo.
+#
+#   GET https://gnews.io/api/v4/top-headlines
+#     query params: category, lang, apikey
+#     auth: API Key (query param)
+#
+# CoinGecko API
+#   GET https://api.coingecko.com/api/v3/simple/price
+#     ?ids=bitcoin,ethereum,dogecoin&vs_currencies=usd,brl
+#     &include_24hr_change=true&include_24hr_vol=true&include_market_cap=true
+#     auth: nenhuma (modo keyless) ou Demo Key no header x-cg-demo-api-key
+#     retorna: { bitcoin: { usd, brl, usd_24h_change, usd_24h_vol,
+#                usd_market_cap }, ... }
+#     obs: "ativo" (PrecoAtivo.ativo) não vem no corpo — é a própria chave do
+#          objeto JSON (ex. "bitcoin"), mapeada pela automação para o valor
+#          do enum do Airtable (ex. "Bitcoin").
+#
+#   GET https://api.coingecko.com/api/v3/search/trending
+#     auth: nenhuma
+# ---------------------------------------------------------------------------
