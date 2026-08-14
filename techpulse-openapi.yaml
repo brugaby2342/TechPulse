@@ -7,10 +7,10 @@ info:
     informações consolidadas a partir das APIs externas (GNews e CoinGecko),
     processadas e persistidas no Airtable. O contrato adota a metodologia
     API First: a interface é definida e validada antes da implementação.
-  version: "2.2.0"
+  version: "1.0.0"
   contact:
-    name: Autor do Projeto
-    email: seu-email@exemplo.com
+    name: Bruna Gabriela Ribeiro Sartor
+    email: gabrielarsartor@icloud.com
 
 servers:
   - url: http://localhost:8080/v1
@@ -57,7 +57,7 @@ components:
       bearerFormat: JWT
       description: >
         Token JWT enviado em Authorization: Bearer {token}. Utilizado apenas
-        pelo perfil Administrador, para os endpoints de escrita em Insights
+        pelo perfil Administrador, para os endpoints de escrita e delete em Insights
         (insights.write, insights.delete) e para ambos os métodos de
         Configuracoes (configuracoes.read, configuracoes.write). Os demais
         endpoints (GET de Noticias, PrecosAtivos e Insights) são públicos e
@@ -83,42 +83,7 @@ components:
 
   schemas:
     # --------------------------- Notícias ---------------------------------
-    NoticiaEntrada:
-      type: object
-      additionalProperties: false
-      description: >
-        Não exposta em nenhum endpoint de escrita — a criação de notícias é
-        feita exclusivamente pela automação (Make.com), diretamente no
-        Airtable. Mantida no contrato apenas como referência de schema.
-      properties:
-        titulo:
-          type: string
-        descricao:
-          type: string
-        url:
-          type: string
-          format: uri
-          description: >
-            Identificador natural do artigo, usado como chave de
-            deduplicação — a GNews não fornece um ID nativo por artigo,
-            mas a URL é estável e única por publicação.
-        fonte:
-          type: string
-        imagem:
-          type: string
-          format: uri
-        dataPublicacao:
-          type: string
-          format: date-time
-        idioma:
-          type: string
-          enum: [pt, en, es]
-        palavrasChave:
-          type: array
-          items:
-            type: string
-      required: [titulo, url, dataPublicacao]
-
+  
     Noticia:
       type: object
       additionalProperties: false
@@ -160,7 +125,7 @@ components:
           type: string
           format: date-time
           readOnly: true
-
+    
     RespostaNoticia:
       type: object
       additionalProperties: false
@@ -264,6 +229,43 @@ components:
             $ref: '#/components/schemas/PrecoAtivo'
 
     # ----------------------------- Insights ---------------------------------
+    
+    Insight:
+      type: object
+      additionalProperties: false
+      required: [id, titulo, textoCard, tipo, status, dataGeracao]
+      properties:
+        id:
+          type: string
+          readOnly: true
+        titulo:
+          type: string
+        textoCard:
+          type: string
+        tipo:
+          type: string
+          enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
+        prioridade:
+          type: string
+          enum: [Alta, Média, Baixa]
+        status:
+          type: string
+          enum: [Novo, Usado, Arquivado]
+        variacaoPercentual:
+          type: number
+          format: float
+        ativoRelacionadoId:
+          type: string
+        noticiaRelacionadaId:
+          type: string
+        urlNoticia:
+          type: string
+          format: uri
+        dataGeracao:
+          type: string
+          format: date-time
+          readOnly: true
+
     InsightEntrada:
       type: object
       additionalProperties: false
@@ -305,43 +307,7 @@ components:
           type: string
           enum: [Novo, Usado, Arquivado]
       required: [status]
-
-    Insight:
-      type: object
-      additionalProperties: false
-      required: [id, titulo, textoCard, tipo, status, dataGeracao]
-      properties:
-        id:
-          type: string
-          readOnly: true
-        titulo:
-          type: string
-        textoCard:
-          type: string
-        tipo:
-          type: string
-          enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
-        prioridade:
-          type: string
-          enum: [Alta, Média, Baixa]
-        status:
-          type: string
-          enum: [Novo, Usado, Arquivado]
-        variacaoPercentual:
-          type: number
-          format: float
-        ativoRelacionadoId:
-          type: string
-        noticiaRelacionadaId:
-          type: string
-        urlNoticia:
-          type: string
-          format: uri
-        dataGeracao:
-          type: string
-          format: date-time
-          readOnly: true
-
+    
     RespostaInsight:
       type: object
       additionalProperties: false
@@ -371,34 +337,7 @@ components:
             $ref: '#/components/schemas/Insight'
 
     # --------------------------- Configurações -------------------------------
-    ConfiguracaoEntrada:
-      type: object
-      additionalProperties: false
-      description: Corpo utilizado por PATCH /configuracoes.
-      properties:
-        nome:
-          type: string
-        palavrasChaveAtivas:
-          type: array
-          items:
-            type: string
-        ativosMonitorados:
-          type: array
-          items:
-            type: string
-        thresholdVariacao:
-          type: number
-          description: Percentual mínimo de variação para disparar automação
-        frequenciaAtualizacao:
-          type: string
-          enum: ["1h", "2h", "3h", "6h"]
-        idiomasPreferidos:
-          type: array
-          items:
-            type: string
-        ativo:
-          type: boolean
-
+    
     Configuracao:
       type: object
       additionalProperties: false
@@ -435,6 +374,34 @@ components:
           nullable: true
           readOnly: true
 
+    ConfiguracaoEntrada:
+      type: object
+      additionalProperties: false
+      description: Corpo utilizado por PATCH /configuracoes.
+      properties:
+        nome:
+          type: string
+        palavrasChaveAtivas:
+          type: array
+          items:
+            type: string
+        ativosMonitorados:
+          type: array
+          items:
+            type: string
+        thresholdVariacao:
+          type: number
+          description: Percentual mínimo de variação para disparar automação
+        frequenciaAtualizacao:
+          type: string
+          enum: ["1h", "2h", "3h", "6h"]
+        idiomasPreferidos:
+          type: array
+          items:
+            type: string
+        ativo:
+          type: boolean
+    
     RespostaConfiguracao:
       type: object
       additionalProperties: false
