@@ -7,7 +7,7 @@ info:
     informações consolidadas a partir das APIs externas (GNews e CoinGecko),
     processadas e persistidas no Airtable. O contrato adota a metodologia
     API First: a interface é definida e validada antes da implementação.
-  version: "1.0.0"
+  version: "1.1.0"
   contact:
     name: Bruna Gabriela Ribeiro Sartor
     email: gabrielarsartor@icloud.com
@@ -17,6 +17,9 @@ servers:
     description: Ambiente de desenvolvimento (mock server)
   - url: https://api.techpulse.exemplo.com/v1
     description: Ambiente de produção
+
+security:
+  - BearerAuth: []
 
 tags:
   - name: Noticias
@@ -34,34 +37,30 @@ tags:
 # O contrato define dois perfis. Apenas o Administrador efetivamente carrega
 # um JWT com scopes: o perfil "Usuário comum" corresponde a requisições sem
 # autenticação, pois os endpoints de leitura de Noticias, PrecosAtivos e
-# Insights são públicos por decisão de projeto (dados não pessoais, LGPD ok).
+# Insights são públicos por decisão de projeto (dados não pessoais, de acordo com a LGPD).
 #
-# | Perfil            | Scopes concedidos no JWT                              |
-# |--------------------|--------------------------------------------------------|
-# | Administrador      | insights.write, insights.delete,                       |
-# |                    | configuracoes.read, configuracoes.write                |
-# | Usuário comum      | nenhum — acessa apenas os GETs públicos, sem token      |
+# | Perfil             | Scopes concedidos no JWT                              |
+# |--------------------|-------------------------------------------------------|
+# | Administrador      | insights.write, insights.delete,                      |
+# |                    | configuracoes.read, configuracoes.write               |
+# | Usuário comum      | nenhum — acessa apenas os GETs públicos, sem token    |
 #
-# Regra de aplicação: a API não verifica "quem é admin" — ela verifica se o
-# JWT apresentado contém o scope declarado em x-required-scope no endpoint.
-# Como o scope configuracoes.read só é emitido para tokens do perfil
-# Administrador, uma chamada de um usuário comum a GET /configuracoes:
+# Regra de aplicação: a API verifica se o JWT apresentado contém o scope declarado em 
+# x-required-scope no endpoint. Como o scope configuracoes.read só é emitido para 
+# tokens do perfil Administrador, uma chamada de um usuário comum a GET /configuracoes:
 #   - sem token  -> 401 Não Autenticado
-#   - com token válido, mas sem o scope -> 403 Acesso Negado
+#   - com token válido, mas sem o scope -> 403 Sem permissão. Acesso Negado
 # ---------------------------------------------------------------------------
+
 components:
   securitySchemes:
-    bearerAuth:
+    BearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
       description: >
         Token JWT enviado em Authorization: Bearer {token}. Utilizado apenas
-        pelo perfil Administrador, para os endpoints de escrita e delete em Insights
-        (insights.write, insights.delete) e para ambos os métodos de
-        Configuracoes (configuracoes.read, configuracoes.write). Os demais
-        endpoints (GET de Noticias, PrecosAtivos e Insights) são públicos e
-        dispensam este esquema de segurança.
+        pelo perfil Administrador.
 
   parameters:
     NoticiaId:
@@ -91,6 +90,7 @@ components:
       properties:
         id:
           type: string
+          description: ID interno gerado automaticamente pelo Airtable (útil para a automação no Make.com)
           readOnly: true
           example: "recNoticia001"
         titulo:
@@ -230,6 +230,48 @@ components:
 
     # ----------------------------- Insights ---------------------------------
     
+    InsightInput:
+      type: object
+      additionalProperties: false
+      required: [titulo, textoCard, tipo, status]
+      description: Corpo utilizado por POST /insights (uso interno da automação).
+      properties:
+        titulo:
+          type: string
+        textoCard:
+          type: string
+          description: Texto pronto para uso em stories/Instagram
+        tipo:
+          type: string
+          enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
+        prioridade:
+          type: string
+          enum: [Alta, Média, Baixa]
+        status:
+          type: string
+          enum: [Novo, Usado, Arquivado]
+          default: Novo
+        variacaoPercentual:
+          type: number
+          format: float
+        ativoRelacionadoId:
+          type: string
+        noticiaRelacionadaId:
+          type: string
+        urlNoticia:
+          type: string
+          format: uri
+      
+    InsightStatusInput:
+      type: object
+      additionalProperties: false
+      required: [status]
+      description: Corpo utilizado por PATCH /insights/{id} para atualizar apenas o status.
+      properties:
+        status:
+          type: string
+          enum: [Novo, Usado, Arquivado]
+      
     Insight:
       type: object
       additionalProperties: false
@@ -265,48 +307,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-
-    InsightEntrada:
-      type: object
-      additionalProperties: false
-      description: Corpo utilizado por POST /insights (uso interno da automação).
-      properties:
-        titulo:
-          type: string
-        textoCard:
-          type: string
-          description: Texto pronto para uso em stories/Instagram
-        tipo:
-          type: string
-          enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
-        prioridade:
-          type: string
-          enum: [Alta, Média, Baixa]
-        status:
-          type: string
-          enum: [Novo, Usado, Arquivado]
-          default: Novo
-        variacaoPercentual:
-          type: number
-          format: float
-        ativoRelacionadoId:
-          type: string
-        noticiaRelacionadaId:
-          type: string
-        urlNoticia:
-          type: string
-          format: uri
-      required: [titulo, textoCard, tipo, status]
-
-    InsightStatusEntrada:
-      type: object
-      additionalProperties: false
-      description: Corpo utilizado por PATCH /insights/{id} para atualizar apenas o status.
-      properties:
-        status:
-          type: string
-          enum: [Novo, Usado, Arquivado]
-      required: [status]
     
     RespostaInsight:
       type: object
@@ -374,7 +374,7 @@ components:
           nullable: true
           readOnly: true
 
-    ConfiguracaoEntrada:
+    ConfiguracaoInput:
       type: object
       additionalProperties: false
       description: Corpo utilizado por PATCH /configuracoes.
@@ -610,7 +610,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InsightEntrada'
+              $ref: '#/components/schemas/InsightInput'
       responses:
         "201":
           description: Insight criado com sucesso
@@ -670,7 +670,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/InsightStatusEntrada'
+              $ref: '#/components/schemas/InsightStatusInput'
       responses:
         "200":
           description: Insight atualizado com sucesso
@@ -765,7 +765,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ConfiguracaoEntrada'
+              $ref: '#/components/schemas/ConfiguracaoInput'
       responses:
         "200":
           description: Configuração atualizada com sucesso
