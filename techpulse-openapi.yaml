@@ -7,7 +7,7 @@ info:
     informações consolidadas a partir das APIs externas (GNews e CoinGecko),
     processadas e persistidas no Airtable. O contrato adota a metodologia
     API First: a interface é definida e validada antes da implementação.
-  version: "1.1.0"
+  version: "1.2.0"
   contact:
     name: Bruna Gabriela Ribeiro Sartor
     email: gabrielarsartor@icloud.com
@@ -63,14 +63,6 @@ components:
         pelo perfil Administrador.
 
   parameters:
-    NoticiaId:
-      name: id
-      in: path
-      required: true
-      description: Identificador único da notícia (recordId do Airtable)
-      schema:
-        type: string
-      example: "recNoticia001"
     InsightId:
       name: id
       in: path
@@ -125,19 +117,6 @@ components:
           type: string
           format: date-time
           readOnly: true
-    
-    RespostaNoticia:
-      type: object
-      additionalProperties: false
-      required: [success, message, data]
-      properties:
-        success:
-          type: boolean
-          enum: [true]
-        message:
-          type: string
-        data:
-          $ref: '#/components/schemas/Noticia'
 
     RespostaListaNoticias:
       type: object
@@ -233,7 +212,6 @@ components:
     InsightInput:
       type: object
       additionalProperties: false
-      required: [titulo, textoCard, tipo, status]
       description: Corpo utilizado por POST /insights (uso interno da automação).
       properties:
         titulo:
@@ -261,16 +239,17 @@ components:
         urlNoticia:
           type: string
           format: uri
+      required: [titulo, textoCard, tipo, status]
       
     InsightStatusInput:
       type: object
       additionalProperties: false
-      required: [status]
       description: Corpo utilizado por PATCH /insights/{id} para atualizar apenas o status.
       properties:
         status:
           type: string
           enum: [Novo, Usado, Arquivado]
+      required: [status]
       
     Insight:
       type: object
@@ -338,6 +317,34 @@ components:
 
     # --------------------------- Configurações -------------------------------
     
+    ConfiguracaoInput:
+      type: object
+      additionalProperties: false
+      description: Corpo utilizado por PATCH /configuracoes.
+      properties:
+        nome:
+          type: string
+        palavrasChaveAtivas:
+          type: array
+          items:
+            type: string
+        ativosMonitorados:
+          type: array
+          items:
+            type: string
+        thresholdVariacao:
+          type: number
+          description: Percentual mínimo de variação para disparar automação
+        frequenciaAtualizacao:
+          type: string
+          enum: ["1h", "2h", "3h", "6h"]
+        idiomasPreferidos:
+          type: array
+          items:
+            type: string
+        ativo:
+          type: boolean
+    
     Configuracao:
       type: object
       additionalProperties: false
@@ -373,34 +380,6 @@ components:
           format: date-time
           nullable: true
           readOnly: true
-
-    ConfiguracaoInput:
-      type: object
-      additionalProperties: false
-      description: Corpo utilizado por PATCH /configuracoes.
-      properties:
-        nome:
-          type: string
-        palavrasChaveAtivas:
-          type: array
-          items:
-            type: string
-        ativosMonitorados:
-          type: array
-          items:
-            type: string
-        thresholdVariacao:
-          type: number
-          description: Percentual mínimo de variação para disparar automação
-        frequenciaAtualizacao:
-          type: string
-          enum: ["1h", "2h", "3h", "6h"]
-        idiomasPreferidos:
-          type: array
-          items:
-            type: string
-        ativo:
-          type: boolean
     
     RespostaConfiguracao:
       type: object
@@ -461,12 +440,6 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RespostaErro'
-    NoticiaNaoEncontrada:
-      description: Notícia não encontrada
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/RespostaErro'
     InsightNaoEncontrado:
       description: Insight não encontrado
       content:
@@ -490,7 +463,7 @@ paths:
       tags: [Noticias]
       summary: Listar notícias capturadas
       description: Lista as notícias já capturadas da GNews e persistidas no Airtable. Endpoint público — não requer autenticação, pois não expõe dado
-        pessoal (notícias são conteúdo público capturado da GNews).
+        pessoal (notícias são conteúdo público capturado da GNews). Os filtros são independentes entre si, aplica-se apenas um por vez.
       operationId: listarNoticias
       parameters:
         - name: palavraChave
@@ -512,25 +485,6 @@ paths:
         "500":
           $ref: '#/components/responses/ErroInterno'
 
-  /noticias/{id}:
-    parameters:
-      - $ref: '#/components/parameters/NoticiaId'
-    get:
-      tags: [Noticias]
-      summary: Consultar notícia por ID
-      operationId: consultarNoticiaPorId
-      responses:
-        "200":
-          description: Notícia consultada com sucesso
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RespostaNoticia'
-        "404":
-          $ref: '#/components/responses/NoticiaNaoEncontrada'
-        "500":
-          $ref: '#/components/responses/ErroInterno'
-
   /precos-ativos:
     get:
       tags: [PrecosAtivos]
@@ -542,11 +496,6 @@ paths:
           schema:
             type: string
           description: Filtra por ativo (ex. Bitcoin)
-        - name: desde
-          in: query
-          schema:
-            type: string
-            format: date-time
       responses:
         "200":
           description: Cotações consultadas com sucesso
@@ -576,6 +525,7 @@ paths:
     get:
       tags: [Insights]
       summary: Listar insights gerados
+      description: Os filtros são independentes entre si, aplica-se apenas um por vez.
       operationId: listarInsights
       parameters:
         - name: status
@@ -588,6 +538,11 @@ paths:
           schema:
             type: string
             enum: [Alta, Média, Baixa]
+        - name: titulo
+          in: query
+          schema:
+            type: string
+          description: Busca parcial (contém) pelo título do insight
       responses:
         "200":
           description: Insights consultados com sucesso
@@ -639,24 +594,6 @@ paths:
   /insights/{id}:
     parameters:
       - $ref: '#/components/parameters/InsightId'
-    get:
-      tags: [Insights]
-      summary: Consultar insight por ID
-      description: >
-        Consulta um insight específico, incluindo os identificadores da
-        notícia e do ativo relacionados (quando aplicável).
-      operationId: consultarInsightPorId
-      responses:
-        "200":
-          description: Insight consultado com sucesso
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RespostaInsight'
-        "404":
-          $ref: '#/components/responses/InsightNaoEncontrado'
-        "500":
-          $ref: '#/components/responses/ErroInterno'
     patch:
       tags: [Insights]
       summary: Atualizar status de um insight (ex. marcar como "Usado")
