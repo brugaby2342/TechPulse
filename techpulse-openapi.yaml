@@ -117,18 +117,19 @@ components:
           type: string
           format: date-time
           readOnly: true      
-        example:
-          id: "recNoticia001"
-          titulo: "X anuncia nova política de transparência para pedidos governamentais"
-          descricao: "Elon Musk afirma que a X passará a divulgar publicamente pedidos de remoção de conteúdo feitos por governos."
-          url: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
-          fonte: "Free Press Journal"
-          imagem: "https://media.assettype.com/freepressjournal/2026-08-17/byapxzyk/Untitled-design.jpg"
-          dataPublicacao: "2026-08-17T06:58:09Z"
-          idioma: "en"
-          palavrasChave: ["Elon Musk", "X", "transparência"]
-          jaProcessada: false
-          dataCaptura: "2026-08-18T10:00:00Z"
+      
+      example:
+        id: "recNoticia001"
+        titulo: "X anuncia nova política de transparência para pedidos governamentais"
+        descricao: "Elon Musk afirma que a X passará a divulgar publicamente pedidos de remoção de conteúdo feitos por governos."
+        url: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
+        fonte: "Free Press Journal"
+        imagem: "https://media.assettype.com/freepressjournal/2026-08-17/byapxzyk/Untitled-design.jpg"
+        dataPublicacao: "2026-08-17T06:58:09Z"
+        idioma: "en"
+        palavrasChave: ["Elon Musk", "X", "transparência"]
+        jaProcessada: false
+        dataCaptura: "2026-08-18T10:00:00Z"
 
     RespostaListaNoticias:
       type: object
@@ -140,6 +141,7 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Notícias consultadas com sucesso."
         data:
           type: array
           items:
@@ -190,16 +192,18 @@ components:
         fonte:
           type: string
           example: CoinGecko
-        example:
-          ativo: "bitcoin"
-          precoUsd: 62345.12
-          precoBrl: 336450.30
-          variacao24h: 2.34
-          volume24h: 28345678901.45
-          marketCap: 1234567890123.00
-          timestamp: "2026-08-18T10:00:00Z"
+        
+      example:
+        id: "recPreco001"
+        ativo: "bitcoin"
+        precoUsd: 62345.12
+        precoBrl: 336450.30
+        variacao24h: 2.34
+        volume24h: 28345678901.45
+        marketCap: 1234567890123.00
+        timestamp: "2026-08-18T10:00:00Z"
 
-    RespostaPrecoAtivo:
+    RespostaListaPrecosAtivosUltimos:
       type: object
       additionalProperties: false
       required: [success, message, data]
@@ -209,8 +213,11 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Últimas cotações consultadas com sucesso."
         data:
-          $ref: '#/components/schemas/PrecoAtivo'
+          type: array
+          items:
+            $ref: '#/components/schemas/PrecoAtivo'
 
     RespostaListaPrecosAtivos:
       type: object
@@ -222,6 +229,7 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Cotações consultadas com sucesso."
         data:
           type: array
           items:
@@ -306,18 +314,19 @@ components:
           type: string
           format: date-time
           readOnly: true
-        example:
-          id: "recInsight001"
-          titulo: "Bitcoin sobe após notícia sobre adoção institucional"
-          textoCard: "Uma notícia recente sobre adoção institucional coincide com alta de 2.34% no Bitcoin nas últimas 24h, reforçando a correlação entre cobertura de mídia e movimento de preço."
-          tipo: "Notícia + Mercado"
-          prioridade: "Alta"
-          status: "Novo"
-          variacaoPercentual: 2.34
-          ativoRelacionadoId: "bitcoin"
-          noticiaRelacionadaId: "recNoticia001"
-          urlNoticia: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
-          dataGeracao: "2026-08-18T10:05:00Z"
+        
+      example:
+        id: "recInsight001"
+        titulo: "Bitcoin sobe após notícia sobre adoção institucional"
+        textoCard: "Uma notícia recente sobre adoção institucional coincide com alta de 2.34% no Bitcoin nas últimas 24h, reforçando a correlação entre cobertura de mídia e movimento de preço."
+        tipo: "Notícia + Mercado"
+        prioridade: "Alta"
+        status: "Novo"
+        variacaoPercentual: 2.34
+        ativoRelacionadoId: "bitcoin"
+        noticiaRelacionadaId: "recNoticia001"
+        urlNoticia: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
+        dataGeracao: "2026-08-18T10:05:00Z"
  
     RespostaInsight:
       type: object
@@ -329,6 +338,35 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Insight criado com sucesso."
+        data:
+          $ref: '#/components/schemas/Insight'
+
+    RespostaInsightAtualizado:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+          example: "Insight atualizado com sucesso."
+        data:
+          $ref: '#/components/schemas/Insight'
+
+    RespostaInsightArquivado:
+      type: object
+      additionalProperties: false
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+          example: "Insight arquivado com sucesso."
         data:
           $ref: '#/components/schemas/Insight'
 
@@ -342,6 +380,7 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Insights consultados com sucesso."
         data:
           type: array
           items:
@@ -412,16 +451,17 @@ components:
           format: date-time
           nullable: true
           readOnly: true
-        example:
-          id: "recConfig001"
-          nome: "Configuração Padrão TechPulse"
-          palavrasChaveAtivas: ["Elon Musk", "SpaceX", "xAI", "Tesla"]
-          ativosMonitorados: ["bitcoin", "ethereum"]
-          thresholdVariacao: 5.0
-          ativo: true
-          frequenciaAtualizacao: "2h"
-          idiomasPreferidos: ["pt", "en"]
-          ultimaAtualizacao: "2026-08-18T08:00:00Z"
+        
+      example:
+        id: "recConfig001"
+        nome: "Configuração Padrão TechPulse"
+        palavrasChaveAtivas: ["Elon Musk", "SpaceX", "xAI", "Tesla"]
+        ativosMonitorados: ["bitcoin", "ethereum"]
+        thresholdVariacao: 5.0
+        ativo: true
+        frequenciaAtualizacao: "2h"
+        idiomasPreferidos: ["pt", "en"]
+        ultimaAtualizacao: "2026-08-18T08:00:00Z"
     
     RespostaConfiguracao:
       type: object
@@ -433,11 +473,11 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Configuração consultada com sucesso."
         data:
           $ref: '#/components/schemas/Configuracao'
 
-    # ----------------------------- Genéricos ---------------------------------
-    RespostaSucessoSemDados:
+    RespostaConfiguracaoAtualizada:
       type: object
       additionalProperties: false
       required: [success, message, data]
@@ -447,11 +487,12 @@ components:
           enum: [true]
         message:
           type: string
+          example: "Configuração atualizada com sucesso."
         data:
-          type: object
-          nullable: true
-          example: null
+          $ref: '#/components/schemas/Configuracao'
 
+    # ----------------------------- Genérico ---------------------------------
+   
     RespostaErro:
       type: object
       additionalProperties: false
@@ -537,6 +578,7 @@ paths:
       description: Lista as notícias já capturadas da GNews e persistidas no Airtable. Endpoint público — não requer autenticação, pois não expõe dado
         pessoal (notícias são conteúdo público capturado da GNews). Os filtros são independentes entre si, aplica-se apenas um por vez.
       operationId: listarNoticias
+      security: []
       parameters:
         - name: palavraChave
           in: query
@@ -562,6 +604,7 @@ paths:
       tags: [PrecosAtivos]
       summary: Listar cotações registradas
       operationId: listarPrecosAtivos
+      security: []
       parameters:
         - name: ativo
           in: query
@@ -583,13 +626,14 @@ paths:
       tags: [PrecosAtivos]
       summary: Obter a cotação mais recente de cada ativo monitorado
       operationId: obterUltimasCotacoes
+      security: []
       responses:
         "200":
           description: Últimas cotações consultadas com sucesso
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RespostaListaPrecosAtivos'
+                $ref: '#/components/schemas/RespostaListaPrecosAtivosUltimos'
         "500":
           $ref: '#/components/responses/ErroInterno'
 
@@ -599,6 +643,7 @@ paths:
       summary: Listar insights gerados
       description: Os filtros são independentes entre si, aplica-se apenas um por vez.
       operationId: listarInsights
+      security: []
       parameters:
         - name: status
           in: query
@@ -630,7 +675,7 @@ paths:
       description: Restrito ao perfil Administrador.
       operationId: criarInsight
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       x-required-scope: insights.write
       requestBody:
         required: true
@@ -668,7 +713,7 @@ paths:
       description: Restrito ao perfil Administrador.
       operationId: atualizarStatusInsight
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       x-required-scope: insights.write
       requestBody:
         required: true
@@ -682,7 +727,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RespostaInsight'
+                $ref: '#/components/schemas/RespostaInsightAtualizado'
         "400":
           $ref: '#/components/responses/DadosInvalidos'
         "401":
@@ -707,7 +752,7 @@ paths:
         ao perfil Administrador.
       operationId: removerInsight
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       x-required-scope: insights.delete
       responses:
         "200":
@@ -715,7 +760,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RespostaInsight'
+                $ref: '#/components/schemas/RespostaInsightArquivado'
         "401":
           $ref: '#/components/responses/NaoAutenticado'
         "403":
@@ -736,7 +781,7 @@ paths:
         de negócio do sistema (palavras-chave, threshold, ativos monitorados).
       operationId: consultarConfiguracao
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       x-required-scope: configuracoes.read
       responses:
         "200":
@@ -759,7 +804,7 @@ paths:
       description: Restrito ao perfil Administrador.
       operationId: atualizarConfiguracao
       security:
-        - bearerAuth: []
+        - BearerAuth: []
       x-required-scope: configuracoes.write
       requestBody:
         required: true
@@ -773,7 +818,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RespostaConfiguracao'
+                $ref: '#/components/schemas/RespostaConfiguracaoAtualizada'
         "400":
           $ref: '#/components/responses/DadosInvalidos'
         "401":
@@ -810,8 +855,9 @@ paths:
 #     retorna: { bitcoin: { usd, brl, usd_24h_change, usd_24h_vol,
 #                usd_market_cap }, ... }
 #     obs: "ativo" (PrecoAtivo.ativo) não vem no corpo — é a própria chave do
-#          objeto JSON (ex. "bitcoin"), mapeada pela automação para o valor
-#          do enum do Airtable (ex. "Bitcoin").
+#          objeto JSON retornado pela CoinGecko (ex. "bitcoin"), que já
+#          corresponde diretamente ao valor usado no enum de PrecoAtivo.ativo
+#          (ex. "bitcoin"). 
 #
 #   GET https://api.coingecko.com/api/v3/search/trending
 #     auth: nenhuma

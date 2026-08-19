@@ -83,6 +83,33 @@ Registro consolidado das ações e decisões do projeto `TechPulse`, extraído d
 - Configurar as chamadas validadas no fluxo do Make.com.
 - Implementar no frontend o tratamento de valores `0` retornados pela CoinGecko.
 
+## Atualização complementar de progresso — 2026-08-19
+
+### Contexto e estado atual
+
+- A etapa de revisão estrutural do `techpulse-openapi.yaml` foi concluída após uma varredura completa de consistência.
+- As respostas de erro reutilizáveis `400`, `401`, `403`, `404` e `500` foram mantidas e consolidadas como padrão do contrato.
+- A estratégia de escrita em `/insights` foi definida para esta fase: operações `PATCH` e `DELETE` são executadas pelo Make.com, com atualização direta no Airtable (sem API REST de escrita dedicada).
+
+### Decisões técnicas registradas na sessão
+
+- **Fluxo de escrita em insights:** manter a superfície pública da API focada em leitura e centralizar as escritas administrativas no fluxo de automação do Make.com.
+- **Segurança OpenAPI:** explicitar `security: []` nos quatro endpoints públicos para eliminar ambiguidade sobre autenticação obrigatória.
+- **Padronização de autenticação:** unificar referências divergentes de `bearerAuth`/`BearerAuth` para `bearerAuth`.
+- **Qualidade de schema e exemplos:** corrigir indentação de `example:` em 4 schemas, incluir `id` faltante no exemplo de `PrecoAtivo`, remover o schema não utilizado `RespostaSucessoSemDados` e resolver a contradição entre `required` e `default` em `InsightInput.status`.
+
+### Arquivos ativos nesta sessão
+
+- `techpulse-openapi.yaml`
+- `docs/memoria-projeto.json`
+- `docs/notas-memoria.md`
+
+### Próximos passos (atualizados)
+
+- Rodar lint/validação OpenAPI para confirmar que a especificação está semanticamente consistente após as correções.
+- Documentar no Make.com a trilha de auditoria das operações administrativas de `PATCH`/`DELETE` em `/insights`.
+- Prosseguir com a configuração operacional dos fluxos já validados (GNews, CoinGecko e persistência no Airtable).
+
 ## Observações e próximos passos recomendados
 
 - Vincular aqui a versão canônica da especificação OpenAPI (ou um link público) se houver alteração futura.

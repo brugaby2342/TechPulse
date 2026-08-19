@@ -72,15 +72,20 @@
 				"Ajustes no contrato OpenAPI concluídos",
 				"Exemplos adicionados aos schemas Noticia, PrecoAtivo, Configuracao e Insight",
 				"Exemplos adicionados às respostas de erro reutilizáveis",
-				"Resposta reutilizável DadosInvalidos adicionada para erros 400"
+				"Resposta reutilizável DadosInvalidos adicionada para erros 400",
+				"Estratégia de escrita em /insights (PATCH/DELETE) definida para execução no Make.com com persistência direta no Airtable",
+				"Varredura completa do techpulse-openapi.yaml concluída com correções de segurança, nomenclatura e exemplos"
 			],
-			"notes": "A integração com a GNews foi validada com uma chamada por idioma. Os campos retornados pela CoinGecko foram mapeados para PrecoAtivo, e valores 0 serão tratados no frontend como dados válidos, sem conversão para ausência de valor.",
+			"notes": "A integração com a GNews foi validada com uma chamada por idioma. Os campos retornados pela CoinGecko foram mapeados para PrecoAtivo, e valores 0 serão tratados no frontend como dados válidos, sem conversão para ausência de valor. Nesta sessão, a camada de escrita de /insights foi formalizada no Make.com (com gravação direta no Airtable), e o contrato OpenAPI passou por revisão estrutural completa para remover inconsistências.",
 			"technicalDecisions": [
 				"GNews: fazer uma chamada por idioma para manter o filtro de idioma explícito e evitar misturar resultados de idiomas diferentes.",
 				"CoinGecko: mapear os campos da fonte para o schema PrecoAtivo; valores numéricos 0 permanecem válidos e são tratados no frontend.",
-				"Contrato OpenAPI: padronizar exemplos nos schemas Noticia, PrecoAtivo, Configuracao e Insight e nas respostas de erro 401, 403, 404, 500 e 400 (DadosInvalidos)."
+				"Contrato OpenAPI: padronizar exemplos nos schemas Noticia, PrecoAtivo, Configuracao e Insight e nas respostas de erro 401, 403, 404, 500 e 400 (DadosInvalidos).",
+				"Escritas em /insights: PATCH e DELETE são realizadas pelo Make.com diretamente no Airtable, sem API REST de escrita dedicada nesta etapa.",
+				"Contrato OpenAPI: definir security: [] explicitamente nos quatro endpoints públicos e padronizar o esquema de autenticação em bearerAuth.",
+				"Contrato OpenAPI: corrigir inconsistências de modelagem e exemplos (indentação de example, id em PrecoAtivo, remoção de schema não usado e alinhamento required/default em InsightInput.status)."
 			],
-			"currentStage": "Contrato OpenAPI e testes das integrações externas concluídos",
+			"currentStage": "Contrato OpenAPI revisado e normalizado (segurança, exemplos e consistência de schemas), com integrações externas já validadas",
 			"activeFiles": [
 				"techpulse-openapi.yaml",
 				"docs/memoria-projeto.json",
@@ -89,12 +94,18 @@
 			"nextSteps": [
 				"Validar o contrato OpenAPI com uma ferramenta de lint/validação",
 				"Configurar as chamadas validadas no fluxo do Make.com",
+				"Documentar no fluxo do Make.com a trilha de auditoria para operações PATCH/DELETE de /insights",
 				"Implementar no frontend o tratamento de valores 0 retornados pela CoinGecko"
 			],
 			"contractUpdate": {
 				"contractFilePath": "techpulse-openapi.yaml",
 				"schemasWithExamples": ["Noticia", "PrecoAtivo", "Configuracao", "Insight"],
-				"reusableErrorResponses": ["400 DadosInvalidos", "401 NaoAutenticado", "403 AcessoNegado", "404 InsightNaoEncontrado/ConfiguracaoNaoEncontrada", "500 ErroInterno"]
+				"reusableErrorResponses": ["400 DadosInvalidos", "401 NaoAutenticado", "403 AcessoNegado", "404 InsightNaoEncontrado/ConfiguracaoNaoEncontrada", "500 ErroInterno"],
+				"publicEndpointsSecurityNormalized": ["GET /noticias", "GET /noticias/{id}", "GET /precos-ativos", "GET /precos-ativos/ultimos"],
+				"authSchemeNormalizedTo": "bearerAuth",
+				"schemasAdjusted": ["Noticia", "PrecoAtivo", "Configuracao", "Insight"],
+				"removedUnusedSchemas": ["RespostaSucessoSemDados"],
+				"modelingFixes": ["InsightInput.status sem contradição entre required e default"]
 			}
 		}
 	]
