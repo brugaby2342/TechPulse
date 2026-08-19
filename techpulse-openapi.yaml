@@ -116,7 +116,19 @@ components:
         dataCaptura:
           type: string
           format: date-time
-          readOnly: true
+          readOnly: true      
+        example:
+          id: "recNoticia001"
+          titulo: "X anuncia nova política de transparência para pedidos governamentais"
+          descricao: "Elon Musk afirma que a X passará a divulgar publicamente pedidos de remoção de conteúdo feitos por governos."
+          url: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
+          fonte: "Free Press Journal"
+          imagem: "https://media.assettype.com/freepressjournal/2026-08-17/byapxzyk/Untitled-design.jpg"
+          dataPublicacao: "2026-08-17T06:58:09Z"
+          idioma: "en"
+          palavrasChave: ["Elon Musk", "X", "transparência"]
+          jaProcessada: false
+          dataCaptura: "2026-08-18T10:00:00Z"
 
     RespostaListaNoticias:
       type: object
@@ -144,7 +156,7 @@ components:
           readOnly: true
         ativo:
           type: string
-          enum: [Bitcoin, Ethereum, Dogecoin, Solana, Outro]
+          enum: [bitcoin, ethereum, dogecoin, solana, nxm]
         precoUsd:
           type: number
           format: float
@@ -178,6 +190,14 @@ components:
         fonte:
           type: string
           example: CoinGecko
+        example:
+          ativo: "bitcoin"
+          precoUsd: 62345.12
+          precoBrl: 336450.30
+          variacao24h: 2.34
+          volume24h: 28345678901.45
+          marketCap: 1234567890123.00
+          timestamp: "2026-08-18T10:00:00Z"
 
     RespostaPrecoAtivo:
       type: object
@@ -286,7 +306,19 @@ components:
           type: string
           format: date-time
           readOnly: true
-    
+        example:
+          id: "recInsight001"
+          titulo: "Bitcoin sobe após notícia sobre adoção institucional"
+          textoCard: "Uma notícia recente sobre adoção institucional coincide com alta de 2.34% no Bitcoin nas últimas 24h, reforçando a correlação entre cobertura de mídia e movimento de preço."
+          tipo: "Notícia + Mercado"
+          prioridade: "Alta"
+          status: "Novo"
+          variacaoPercentual: 2.34
+          ativoRelacionadoId: "bitcoin"
+          noticiaRelacionadaId: "recNoticia001"
+          urlNoticia: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
+          dataGeracao: "2026-08-18T10:05:00Z"
+ 
     RespostaInsight:
       type: object
       additionalProperties: false
@@ -380,6 +412,16 @@ components:
           format: date-time
           nullable: true
           readOnly: true
+        example:
+          id: "recConfig001"
+          nome: "Configuração Padrão TechPulse"
+          palavrasChaveAtivas: ["Elon Musk", "SpaceX", "xAI", "Tesla"]
+          ativosMonitorados: ["bitcoin", "ethereum"]
+          thresholdVariacao: 5.0
+          ativo: true
+          frequenciaAtualizacao: "2h"
+          idiomasPreferidos: ["pt", "en"]
+          ultimaAtualizacao: "2026-08-18T08:00:00Z"
     
     RespostaConfiguracao:
       type: object
@@ -421,6 +463,7 @@ components:
         message:
           type: string
 
+  
   responses:
     NaoAutenticado:
       description: Token JWT ausente, inválido ou expirado
@@ -428,30 +471,59 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/RespostaErro'
+          example:
+            success: false
+            message: "Token de autenticação ausente ou inválido. Inclua um Bearer Token válido no cabeçalho Authorization."
+ 
+    DadosInvalidos:
+      description: Dados enviados em formato inválido
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/RespostaErro'
+          example:
+            success: false
+            message: "Um ou mais campos enviados são inválidos. Verifique os dados e tente novamente."
+    
     AcessoNegado:
       description: Usuário autenticado sem o scope necessário
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/RespostaErro'
+          example:
+            success: false
+            message: "Token válido, porém sem permissão (scope) para acessar este recurso."
+ 
     ErroInterno:
       description: Falha inesperada ao processar a requisição
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/RespostaErro'
+          example:
+            success: false
+            message: "Ocorreu um erro inesperado ao processar a requisição. Tente novamente mais tarde."
+          
     InsightNaoEncontrado:
       description: Insight não encontrado
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/RespostaErro'
+          example:
+            success: false
+            message: "Insight não encontrado. Verifique se o 'id' informado está correto."
+ 
     ConfiguracaoNaoEncontrada:
       description: Configuração não encontrada
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/RespostaErro'
+          example:
+            success: false
+            message: "Configuração não encontrada. Verifique se o 'id' informado está correto."
 
 # ---------------------------------------------------------------------------
 # RECURSOS / ENDPOINTS DA API INTERNA
@@ -579,11 +651,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RespostaInsight'
         "400":
-          description: Dados enviados em formato inválido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RespostaErro'
+          $ref: '#/components/responses/DadosInvalidos'
         "401":
           $ref: '#/components/responses/NaoAutenticado'
         "403":
@@ -616,11 +684,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RespostaInsight'
         "400":
-          description: Dados enviados em formato inválido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RespostaErro'
+          $ref: '#/components/responses/DadosInvalidos'
         "401":
           $ref: '#/components/responses/NaoAutenticado'
         "403":
@@ -711,11 +775,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/RespostaConfiguracao'
         "400":
-          description: Dados enviados em formato inválido
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RespostaErro'
+          $ref: '#/components/responses/DadosInvalidos'
         "401":
           $ref: '#/components/responses/NaoAutenticado'
         "403":
