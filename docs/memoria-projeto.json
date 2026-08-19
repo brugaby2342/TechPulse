@@ -63,6 +63,39 @@
 				},
 				"architectureDecision": "Como o frontend é 100% estático, nenhum valor sensível deve ser embutido em JavaScript público. A segurança relevante é reforçada com escopo de leitura e validação em servidor/automação, nunca no navegador."
 			}
+		},
+		{
+			"date": "2026-08-19",
+			"actions": [
+				"Testes de API da GNews concluídos",
+				"Testes de API da CoinGecko concluídos",
+				"Ajustes no contrato OpenAPI concluídos",
+				"Exemplos adicionados aos schemas Noticia, PrecoAtivo, Configuracao e Insight",
+				"Exemplos adicionados às respostas de erro reutilizáveis",
+				"Resposta reutilizável DadosInvalidos adicionada para erros 400"
+			],
+			"notes": "A integração com a GNews foi validada com uma chamada por idioma. Os campos retornados pela CoinGecko foram mapeados para PrecoAtivo, e valores 0 serão tratados no frontend como dados válidos, sem conversão para ausência de valor.",
+			"technicalDecisions": [
+				"GNews: fazer uma chamada por idioma para manter o filtro de idioma explícito e evitar misturar resultados de idiomas diferentes.",
+				"CoinGecko: mapear os campos da fonte para o schema PrecoAtivo; valores numéricos 0 permanecem válidos e são tratados no frontend.",
+				"Contrato OpenAPI: padronizar exemplos nos schemas Noticia, PrecoAtivo, Configuracao e Insight e nas respostas de erro 401, 403, 404, 500 e 400 (DadosInvalidos)."
+			],
+			"currentStage": "Contrato OpenAPI e testes das integrações externas concluídos",
+			"activeFiles": [
+				"techpulse-openapi.yaml",
+				"docs/memoria-projeto.json",
+				"docs/notas-memoria.md"
+			],
+			"nextSteps": [
+				"Validar o contrato OpenAPI com uma ferramenta de lint/validação",
+				"Configurar as chamadas validadas no fluxo do Make.com",
+				"Implementar no frontend o tratamento de valores 0 retornados pela CoinGecko"
+			],
+			"contractUpdate": {
+				"contractFilePath": "techpulse-openapi.yaml",
+				"schemasWithExamples": ["Noticia", "PrecoAtivo", "Configuracao", "Insight"],
+				"reusableErrorResponses": ["400 DadosInvalidos", "401 NaoAutenticado", "403 AcessoNegado", "404 InsightNaoEncontrado/ConfiguracaoNaoEncontrada", "500 ErroInterno"]
+			}
 		}
 	]
 }

@@ -31,7 +31,7 @@ Registro consolidado das ações e decisões do projeto `TechPulse`, extraído d
 	- `GET /insights` — listar insights; `POST /insights` — criar insight (autenticado)
 	- `PATCH /insights/{id}` — atualizar status do insight (autenticado)
 	- `GET /configuracoes` e `PATCH /configuracoes` — consultar/atualizar parâmetros (autenticado)
-- **Schemas principais (resumo):** Noticia, PrecoAtivo, Insight, Configuracao, Erro (ver `contrato.yaml` para detalhes completos)
+- **Schemas principais (resumo):** Noticia, PrecoAtivo, Insight, Configuracao, Erro (ver `techpulse-openapi.yaml` para detalhes completos)
 - **APIs externas referenciadas:** GNews (artigos), CoinGecko (cotações/variações)
 
 ## Gestão de segredos e ambiente
@@ -45,7 +45,7 @@ Registro consolidado das ações e decisões do projeto `TechPulse`, extraído d
 
 ## Links e anexos
 
-- Especificação OpenAPI (arquivo no repositório): contrato.yaml
+- Especificação OpenAPI (arquivo canônico no repositório): techpulse-openapi.yaml
 - Diagramas (Whimsical): https://whimsical.com/gabi466/techpulse-DVVoPp8z291ePoxFoBjazT
 
 ## MCP / Memória
@@ -56,8 +56,35 @@ Registro consolidado das ações e decisões do projeto `TechPulse`, extraído d
 
 - Nenhum erro resolvido está registrado na memória para esta data.
 
+## Atualização de progresso — 2026-08-19
+
+### Contexto e estado atual
+
+- Testes das integrações com GNews e CoinGecko concluídos.
+- Ajustes no contrato OpenAPI concluídos, com exemplos nos schemas `Noticia`, `PrecoAtivo`, `Configuracao` e `Insight`.
+- Respostas de erro reutilizáveis documentadas para `401`, `403`, `404` e `500`, com a nova resposta genérica `400 DadosInvalidos`.
+- Etapa atual: contrato OpenAPI e testes das integrações externas concluídos.
+
+### Decisões técnicas
+
+- **GNews:** uma chamada por idioma, mantendo o filtro explícito e evitando misturar resultados de idiomas diferentes.
+- **CoinGecko:** campos da fonte mapeados para `PrecoAtivo`; valores numéricos `0` são válidos e devem ser tratados como dados presentes no frontend.
+- **Contrato OpenAPI:** exemplos foram adicionados aos schemas e às respostas de erro para tornar os payloads esperados mais claros e reutilizáveis.
+
+### Arquivos ativos
+
+- `techpulse-openapi.yaml`
+- `docs/memoria-projeto.json`
+- `docs/notas-memoria.md`
+
+### Próximos passos
+
+- Validar o contrato OpenAPI com uma ferramenta de lint/validação.
+- Configurar as chamadas validadas no fluxo do Make.com.
+- Implementar no frontend o tratamento de valores `0` retornados pela CoinGecko.
+
 ## Observações e próximos passos recomendados
 
 - Vincular aqui a versão canônica da especificação OpenAPI (ou um link público) se houver alteração futura.
-- Incluir resumo de mudanças ao atualizar `contrato.yaml` para manter rastreabilidade na memória.
+- Incluir resumo de mudanças ao atualizar `techpulse-openapi.yaml` para manter rastreabilidade na memória.
 - Evoluir a memória com futuras decisões de integração e operação do fluxo de dados quando novas automações forem adicionadas.
