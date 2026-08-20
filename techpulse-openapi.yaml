@@ -262,8 +262,10 @@ components:
           format: float
         ativoRelacionadoId:
           type: string
+          description: Referencia PrecoAtivo.id (recordId do Airtable), quando o insight envolver um ativo monitorado.
         noticiaRelacionadaId:
           type: string
+          description: Referencia Noticia.id (recordId do Airtable), quando o insight envolver uma notícia capturada.
         urlNoticia:
           type: string
           format: uri
@@ -305,8 +307,10 @@ components:
           format: float
         ativoRelacionadoId:
           type: string
+          description: Referencia PrecoAtivo.id (recordId do Airtable), quando o insight envolver um ativo monitorado.
         noticiaRelacionadaId:
           type: string
+          description: Referencia Noticia.id (recordId do Airtable), quando o insight envolver uma notícia capturada.
         urlNoticia:
           type: string
           format: uri

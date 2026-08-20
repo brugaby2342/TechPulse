@@ -1,0 +1,29 @@
+{
+  "name": "techpulse",
+  "version": "1.0.0",
+  "description": "CENTRAL INTELIGENTE DE MONITORAMENTO",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brugaby2342/TechPulse.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/brugaby2342/TechPulse/issues"
+  },
+  "homepage": "https://github.com/brugaby2342/TechPulse#readme",
+  "dependencies": {
+    "axios": "^1.19.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1"
+  }
+}
