@@ -246,7 +246,8 @@ components:
           type: string
         textoCard:
           type: string
-          description: Texto pronto para uso em stories/Instagram
+          description: >
+            Conteúdo completo do card formatado para postagem no Instagram. Deve incluir emojis, quebras de linha e hashtags. Este campo é copiado diretamente pelo frontend — formatar antes de enviar.
         tipo:
           type: string
           enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
@@ -293,6 +294,8 @@ components:
           type: string
         textoCard:
           type: string
+          description: >
+            Conteúdo completo do card formatado para postagem no Instagram, gerado pela automação no Make.com. Inclui emojis, quebras de linha e hashtags. O frontend copia este campo diretamente para a área de transferência — nenhuma formatação adicional é aplicada no lado do cliente.
         tipo:
           type: string
           enum: ["Notícia + Mercado", "Só Notícia", "Só Mercado"]
