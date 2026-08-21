@@ -106,7 +106,7 @@ components:
           format: date-time
         idioma:
           type: string
-          enum: [pt, en, es]
+          enum: [pt, en]
         palavrasChave:
           type: array
           items:
@@ -311,6 +311,12 @@ components:
         noticiaRelacionadaId:
           type: string
           description: Referencia Noticia.id (recordId do Airtable), quando o insight envolver uma notícia capturada.
+        dataPublicacaoNoticia:
+          type: string
+          format: date-time
+          readOnly: true
+          description: >
+            Data de publicação da notícia de origem. Campo Lookup do Airtable — retornado como array por ser derivado de linked record. O frontend deve ler o primeiro elemento do array (índice 0).
         urlNoticia:
           type: string
           format: uri
@@ -329,6 +335,7 @@ components:
         variacaoPercentual: 2.34
         ativoRelacionadoId: "bitcoin"
         noticiaRelacionadaId: "recNoticia001"
+        dataPublicacaoNoticia: "2026-08-17T06:58:09Z"
         urlNoticia: "https://www.freepressjournal.in/tech/x-will-publicly-display-government-content-takedown-requests"
         dataGeracao: "2026-08-18T10:05:00Z"
  
@@ -395,7 +402,7 @@ components:
     ConfiguracaoInput:
       type: object
       additionalProperties: false
-      description: Corpo utilizado por PATCH /configuracoes.
+      description: Corpo utilizado por PUT /configuracoes.
       properties:
         nome:
           type: string
@@ -410,9 +417,6 @@ components:
         thresholdVariacao:
           type: number
           description: Percentual mínimo de variação para disparar automação
-        frequenciaAtualizacao:
-          type: string
-          enum: ["1h", "2h", "3h", "6h"]
         idiomasPreferidos:
           type: array
           items:
@@ -441,9 +445,6 @@ components:
         thresholdVariacao:
           type: number
           description: Percentual mínimo de variação para disparar automação
-        frequenciaAtualizacao:
-          type: string
-          enum: ["1h", "2h", "3h", "6h"]
         idiomasPreferidos:
           type: array
           items:
@@ -463,7 +464,6 @@ components:
         ativosMonitorados: ["bitcoin", "ethereum"]
         thresholdVariacao: 5.0
         ativo: true
-        frequenciaAtualizacao: "2h"
         idiomasPreferidos: ["pt", "en"]
         ultimaAtualizacao: "2026-08-18T08:00:00Z"
     
@@ -593,6 +593,8 @@ paths:
           in: query
           schema:
             type: boolean
+          description: >
+            Filtro de uso interno pela automação. Quando false, retorna apenas notícias ainda não utilizadas para gerar insights.
       responses:
         "200":
           description: Notícias consultadas com sucesso
@@ -802,9 +804,9 @@ paths:
           $ref: '#/components/responses/ConfiguracaoNaoEncontrada'
         "500":
           $ref: '#/components/responses/ErroInterno'
-    patch:
+    put:
       tags: [Configuracoes]
-      summary: Atualizar palavras-chave, ativos monitorados ou threshold
+      summary: Atualizar configurações da automação
       description: Restrito ao perfil Administrador.
       operationId: atualizarConfiguracao
       security:
@@ -829,8 +831,6 @@ paths:
           $ref: '#/components/responses/NaoAutenticado'
         "403":
           $ref: '#/components/responses/AcessoNegado'
-        "404":
-          $ref: '#/components/responses/ConfiguracaoNaoEncontrada'
         "500":
           $ref: '#/components/responses/ErroInterno'
 
